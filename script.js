@@ -78,7 +78,7 @@ window.addEventListener('scroll', () => {
 }, { passive: true });
 
 // ===== Estado =====
-let ctx = { profissional: null, wa: null, colecao: 'agendamentos' };
+let ctx = { profissional: null, wa: null };
 let agendamentoContexto = {
     nomeCliente: '',
     produtos: [],
@@ -162,56 +162,136 @@ const toBRL = (n) => (Number(n) || 0).toLocaleString('pt-BR', { style: 'currency
 // ===== Helpers de modal =====
 function abrirModal(id) {
     const el = document.getElementById(id);
-    if (el) { el.style.display = 'flex'; el.setAttribute('aria-hidden', 'false'); }
+    if (el) {
+        el.style.display = 'flex';
+        el.removeAttribute('aria-hidden');
+
+        setTimeout(() => {
+            const focusable = el.querySelector('input, button, select, textarea, [tabindex]:not([tabindex="-1"])');
+            if (focusable) focusable.focus();
+        }, 100);
+    }
 }
+
 function fecharModal(id) {
     const el = document.getElementById(id);
-    if (el) { el.style.display = 'none'; el.setAttribute('aria-hidden', 'true'); }
+    if (el) {
+        el.style.display = 'none';
+        el.setAttribute('aria-hidden', 'true');
+    }
 }
 window.fecharModal = fecharModal;
 
-// ===== Persistência (RA Club) =====
-function salvarContextoSessao() {
-    try {
-        sessionStorage.setItem('agendamentoCtx', JSON.stringify(agendamentoContexto));
-        sessionStorage.setItem('ctx', JSON.stringify(ctx));
-    } catch { }
-}
-function restaurarContextoSessao() {
-    try {
-        const c1 = sessionStorage.getItem('agendamentoCtx');
-        const c2 = sessionStorage.getItem('ctx');
-        if (c1) agendamentoContexto = JSON.parse(c1);
-        if (c2) ctx = JSON.parse(c2);
-    } catch { }
-}
-function tentarRetomarPosCheckout() {
-    const flag = sessionStorage.getItem('raclubCheckoutRedirect');
-    if (flag === '1') {
-        sessionStorage.removeItem('raclubCheckoutRedirect');
-        restaurarContextoSessao();
-        if (ctx?.colecao && ctx?.profissional) {
-            agendamentoContexto.raclub = { status: 'assinar_link' };
-            fecharModal('modalRAClub');
-            abrirModalAgendamento();
-        }
-    }
-}
-document.addEventListener('visibilitychange', () => {
-    if (document.visibilityState === 'visible') tentarRetomarPosCheckout();
-});
+// ===== Fluxo: Nome → Serviço → Produtos → RA Club → Agendamento =====
 
-// ===== Fluxo Nome → Produtos → RA Club → Agendamento =====
+// 1️⃣ Modal Nome
 const nomeClienteInput = document.getElementById('nomeCliente');
 document.getElementById('btnClienteContinuar')?.addEventListener('click', () => {
     const nome = (nomeClienteInput.value || '').trim();
-    if (!nome) { alert('Digite seu nome para continuar.'); return; }
+    if (!nome) {
+        alert('Por favor, digite seu nome para continuar.');
+        nomeClienteInput.focus();
+        return;
+    }
     agendamentoContexto.nomeCliente = nome;
     fecharModal('modalCliente');
+    abrirModalServico();
+});
+
+// 2️⃣ Modal Serviço
+const servicoDisplay = document.getElementById('servicoDisplay');
+const servicoLista = document.getElementById('servicoLista');
+const servicoCancelar = document.getElementById('servicoCancelar');
+const servicoConfirmarWpp = document.getElementById('servicoConfirmarWpp');
+const svcSearch = document.getElementById('svcSearch');
+let svcFilterText = "";
+const norm = (s) => (s || "").normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+
+function getFilteredServicos() {
+    const base = SERVICOS.slice(1);
+    if (!svcFilterText.trim()) return base;
+    const f = norm(svcFilterText);
+    return base.filter(s => norm(s.nome).includes(f));
+}
+
+function renderListaServicos() {
+    const items = getFilteredServicos();
+
+    if (items.length === 0) {
+        servicoLista.innerHTML = '<div style="padding: 20px; text-align: center; color: #999;">Nenhum serviço encontrado</div>';
+        return;
+    }
+
+    servicoLista.innerHTML = items.map((s) => {
+        const checked = agendamentoContexto.servico?.nome === s.nome ? 'checked' : '';
+        const sub = `<div class="svc-muted">${s.valor != null ? toBRL(s.valor) : 'Valor a consultar'}</div>`;
+
+        return `
+            <label class="svc-row" data-nome="${s.nome}">
+                <div class="svc-left">
+                    <div class="svc-name">${s.nome}</div>${sub}
+                </div>
+                <input class="svc-radio" type="radio" name="svc" value="${s.nome}" ${checked} />
+            </label>`;
+    }).join('');
+
+    servicoLista.querySelectorAll('.svc-row').forEach(row => {
+        row.addEventListener('click', () => {
+            const radio = row.querySelector('input[type="radio"]');
+            if (radio) radio.checked = true;
+        });
+    });
+}
+
+function abrirModalServico() {
+    svcFilterText = "";
+    if (svcSearch) svcSearch.value = "";
+    renderListaServicos();
+    abrirModal('servicoModal');
+}
+
+servicoDisplay?.addEventListener('click', abrirModalServico);
+
+servicoCancelar?.addEventListener('click', () => {
+    if (!agendamentoContexto.servico) {
+        fecharModal('servicoModal');
+        alert('É necessário selecionar um serviço para continuar.');
+        return;
+    }
+    fecharModal('servicoModal');
+});
+
+svcSearch?.addEventListener('input', (e) => {
+    svcFilterText = e.target.value || "";
+    renderListaServicos();
+});
+
+servicoConfirmarWpp?.addEventListener('click', () => {
+    const sel = servicoLista.querySelector('input[name="svc"]:checked');
+    if (!sel) {
+        alert('Por favor, selecione um serviço.');
+        return;
+    }
+
+    const s = SERVICOS.find(x => x.nome === sel.value);
+    if (!s || s.placeholder) {
+        alert('Por favor, selecione um serviço válido.');
+        return;
+    }
+
+    agendamentoContexto.servico = { nome: s.nome, valor: s.valor };
+
+    if (servicoDisplay) {
+        servicoDisplay.value = s.valor != null
+            ? `${s.nome} — ${toBRL(s.valor)}`
+            : `${s.nome} — Valor a consultar`;
+    }
+
+    fecharModal('servicoModal');
     abrirModalProdutos();
 });
 
-// Produtos
+// 3️⃣ Modal Produtos
 const produtosContainer = document.getElementById('produtosContainer');
 const prodTotalSpan = document.getElementById('prodTotal');
 const btnProdutosPular = document.getElementById('btnProdutosPular');
@@ -223,70 +303,181 @@ function renderProdutos() {
         const card = document.createElement('div');
         card.className = 'prod-card';
         card.dataset.index = i;
+
+        const jaSelecionado = agendamentoContexto.produtos.some(pr => pr.nome === p.nome);
+        if (jaSelecionado) card.classList.add('active');
+
         card.innerHTML = `
             <div class="p-name">${p.nome}</div>
             <div class="p-price">${toBRL(p.preco)}</div>
-            <small class="muted">Toque para selecionar</small>
+            <small class="muted">Toque para ${jaSelecionado ? 'remover' : 'selecionar'}</small>
         `;
         card.addEventListener('click', () => toggleProduto(i, card));
         produtosContainer.appendChild(card);
     });
 }
+
 function toggleProduto(index, cardEl) {
     const item = PRODUTOS[index];
     const exists = agendamentoContexto.produtos.find(pr => pr.nome === item.nome);
+
     if (exists) {
         agendamentoContexto.produtos = agendamentoContexto.produtos.filter(pr => pr.nome !== item.nome);
         cardEl.classList.remove('active');
+        cardEl.querySelector('.muted').textContent = 'Toque para selecionar';
     } else {
         agendamentoContexto.produtos.push({ nome: item.nome, preco: item.preco });
         cardEl.classList.add('active');
+        cardEl.querySelector('.muted').textContent = 'Toque para remover';
     }
+
     agendamentoContexto.totalProdutos = agendamentoContexto.produtos.reduce((s, it) => s + (it.preco || 0), 0);
     prodTotalSpan.textContent = toBRL(agendamentoContexto.totalProdutos);
 }
+
 function abrirModalProdutos() {
-    agendamentoContexto.produtos = [];
-    agendamentoContexto.totalProdutos = 0;
-    prodTotalSpan.textContent = toBRL(0);
+    const totalAtual = agendamentoContexto.produtos.reduce((s, it) => s + (it.preco || 0), 0);
+    agendamentoContexto.totalProdutos = totalAtual;
+    prodTotalSpan.textContent = toBRL(totalAtual);
     renderProdutos();
     abrirModal('modalProdutos');
 }
-btnProdutosPular?.addEventListener('click', () => { fecharModal('modalProdutos'); abrirModalRAClub(); });
-btnProdutosContinuar?.addEventListener('click', () => { fecharModal('modalProdutos'); abrirModalRAClub(); });
 
-// RA Club
+btnProdutosPular?.addEventListener('click', () => {
+    agendamentoContexto.produtos = [];
+    agendamentoContexto.totalProdutos = 0;
+    fecharModal('modalProdutos');
+    abrirModalRAClub();
+});
+
+btnProdutosContinuar?.addEventListener('click', () => {
+    fecharModal('modalProdutos');
+    abrirModalRAClub();
+});
+
+// 4️⃣ Modal RA Club
 const btnRAJaMembro = document.getElementById('btnRAJaMembro');
 const btnRANao = document.getElementById('btnRANao');
 const btnRAAssinar = document.getElementById('btnRAAssinar');
-function abrirModalRAClub() { abrirModal('modalRAClub'); }
+
+function abrirModalRAClub() {
+    abrirModal('modalRAClub');
+}
+
 btnRAJaMembro?.addEventListener('click', () => {
     agendamentoContexto.raclub = { status: 'membro' };
     fecharModal('modalRAClub');
     abrirModalAgendamento();
 });
+
 btnRANao?.addEventListener('click', () => {
     agendamentoContexto.raclub = { status: 'nao' };
     fecharModal('modalRAClub');
     abrirModalAgendamento();
 });
+
 if (btnRAAssinar) {
-    const RA_CLUB_CHECKOUT_URL = btnRAAssinar.getAttribute('href') || '';
     btnRAAssinar.addEventListener('click', () => {
         agendamentoContexto.raclub = { status: 'assinar_link' };
-        salvarContextoSessao();
-        sessionStorage.setItem('raclubCheckoutRedirect', '1');
-        if (!RA_CLUB_CHECKOUT_URL || RA_CLUB_CHECKOUT_URL === '#') {
-            alert('Link de checkout não configurado.');
-        }
+        // Link abre automaticamente pelo href do botão
     });
 }
 
-// Agendamento (data/hora)
+// 5️⃣ Modal Agendamento (data/hora) + Controle de Horários
 const dataInput = document.getElementById('data');
 const horaSelect = document.getElementById('hora');
 
-function gerarIntervalos(inicio = '09:00', fim = '18:00', passoMin = 60) {
+// ===== SISTEMA DE CONTROLE DE HORÁRIOS (LocalStorage) =====
+const STORAGE_KEY = 'barbearia_agendamentos';
+
+// Salvar agendamento no localStorage
+function salvarAgendamento(data, hora, profissional, clienteNome, servico) {
+    try {
+        const agendamentos = getAgendamentos();
+        const key = `${data}_${hora}_${profissional}`;
+
+        agendamentos[key] = {
+            data,
+            hora,
+            profissional,
+            clienteNome,
+            servico,
+            timestamp: new Date().toISOString()
+        };
+
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(agendamentos));
+        console.log("✅ Agendamento salvo localmente:", key);
+        return true;
+    } catch (error) {
+        console.error("❌ Erro ao salvar agendamento:", error);
+        return false;
+    }
+}
+
+// Buscar todos os agendamentos
+function getAgendamentos() {
+    try {
+        const data = localStorage.getItem(STORAGE_KEY);
+        return data ? JSON.parse(data) : {};
+    } catch (error) {
+        console.error("❌ Erro ao ler agendamentos:", error);
+        return {};
+    }
+}
+
+// Verificar se horário está ocupado
+function horarioEstaOcupado(data, hora, profissional) {
+    const agendamentos = getAgendamentos();
+    const key = `${data}_${hora}_${profissional}`;
+    return agendamentos.hasOwnProperty(key);
+}
+
+// Buscar horários ocupados para uma data e profissional
+function getHorariosOcupados(data, profissional) {
+    const agendamentos = getAgendamentos();
+    const ocupados = [];
+
+    Object.keys(agendamentos).forEach(key => {
+        const ag = agendamentos[key];
+        if (ag.data === data && ag.profissional === profissional) {
+            ocupados.push(ag.hora);
+        }
+    });
+
+    return ocupados;
+}
+
+// Limpar agendamentos antigos (mais de 30 dias)
+function limparAgendamentosAntigos() {
+    try {
+        const agendamentos = getAgendamentos();
+        const hoje = new Date();
+        let removidos = 0;
+
+        Object.keys(agendamentos).forEach(key => {
+            const ag = agendamentos[key];
+            const dataAg = new Date(ag.data + 'T00:00:00');
+            const diffDias = Math.floor((hoje - dataAg) / (1000 * 60 * 60 * 24));
+
+            if (diffDias > 30) {
+                delete agendamentos[key];
+                removidos++;
+            }
+        });
+
+        if (removidos > 0) {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(agendamentos));
+            console.log(`🧹 ${removidos} agendamento(s) antigo(s) removido(s)`);
+        }
+    } catch (error) {
+        console.error("❌ Erro ao limpar agendamentos antigos:", error);
+    }
+}
+
+// Executa limpeza ao carregar
+limparAgendamentosAntigos();
+
+function gerarIntervalos(inicio = '09:00', fim = '22:00', passoMin = 60) {
     const out = [];
     let [h, m] = inicio.split(':').map(Number);
     const [hF, mF] = fim.split(':').map(Number);
@@ -297,41 +488,98 @@ function gerarIntervalos(inicio = '09:00', fim = '18:00', passoMin = 60) {
     }
     return out;
 }
+
 function fillHorasForProf() {
-    const lista = gerarIntervalos('09:00', '18:00', 60);
+    const lista = gerarIntervalos('09:00', '22:00', 60);
     horaSelect.innerHTML = `<option value="">Selecione um horário</option>` +
         lista.map(h => `<option>${h}</option>`).join('');
 }
-function resetSelectVisual() {
+
+function carregarHorariosDisponiveis() {
+    if (!dataInput?.value || !ctx.profissional) {
+        console.log("⚠️ Data ou profissional não definidos");
+        return;
+    }
+
+    console.log("🔍 Verificando horários disponíveis para:", dataInput.value, ctx.profissional);
+
+    // Reseta todos os horários
     for (const opt of horaSelect.options) {
         if (!opt.value) continue;
         opt.disabled = false;
         opt.classList.remove('reservado');
+        opt.style.color = '';
+    }
+
+    // Marca horários ocupados
+    const ocupados = getHorariosOcupados(dataInput.value, ctx.profissional);
+    console.log("⏰ Horários ocupados:", ocupados);
+
+    let totalOcupados = 0;
+    for (const opt of horaSelect.options) {
+        if (!opt.value) continue;
+
+        if (ocupados.includes(opt.value)) {
+            opt.disabled = true;
+            opt.classList.add('reservado');
+            opt.style.color = '#999';
+            opt.textContent = `${opt.value} - Ocupado`;
+            totalOcupados++;
+
+            // Se o horário selecionado ficou ocupado, limpa a seleção
+            if (horaSelect.value === opt.value) {
+                horaSelect.value = '';
+            }
+        }
+    }
+
+    if (totalOcupados > 0) {
+        console.log(`✅ ${totalOcupados} horário(s) marcado(s) como ocupado(s)`);
+    } else {
+        console.log("✅ Todos os horários disponíveis!");
     }
 }
-function abrirModalAgendamento() {
+
+// Adiciona listener para atualizar quando mudar a data
+dataInput?.addEventListener('change', carregarHorariosDisponiveis);
+
+function getDataMinima() {
     const hoje = new Date();
+    const horaAtual = hoje.getHours();
+
+    // Se já passou das 20h, define data mínima para amanhã
+    if (horaAtual >= 20) {
+        hoje.setDate(hoje.getDate() + 1);
+    }
+
     const y = hoje.getFullYear();
     const m = String(hoje.getMonth() + 1).padStart(2, "0");
     const d = String(hoje.getDate()).padStart(2, "0");
-    dataInput.min = `${y}-${m}-${d}`;
+    return `${y}-${m}-${d}`;
+}
+
+function abrirModalAgendamento() {
+    dataInput.min = getDataMinima();
     dataInput.value = "";
     fillHorasForProf();
     horaSelect.value = "";
-    resetSelectVisual();
+
     const display = document.getElementById('servicoDisplay');
-    display.value = agendamentoContexto.servico
-        ? `${agendamentoContexto.servico.nome}${agendamentoContexto.servico.valor != null ? ' — ' + toBRL(agendamentoContexto.servico.valor) : ''}`
-        : '';
+    if (display && agendamentoContexto.servico) {
+        display.value = agendamentoContexto.servico.valor != null
+            ? `${agendamentoContexto.servico.nome} — ${toBRL(agendamentoContexto.servico.valor)}`
+            : `${agendamentoContexto.servico.nome} — Valor a consultar`;
+    }
+
     abrirModal('modal');
 }
 
-// Botões dos profissionais
+// Botões dos profissionais (iniciar fluxo)
 document.querySelectorAll('.openModalBtn').forEach(btn => {
     btn.addEventListener('click', () => {
-        ctx.profissional = btn.dataset.pro || 'Profissional';
+        ctx.profissional = btn.dataset.pro || 'Thiago';
         ctx.wa = btn.dataset.wa || '5521986020031';
-        ctx.colecao = 'agendamentos';
+
         agendamentoContexto = {
             nomeCliente: '',
             produtos: [],
@@ -339,221 +587,153 @@ document.querySelectorAll('.openModalBtn').forEach(btn => {
             raclub: { status: 'nao' },
             servico: null
         };
+
         if (nomeClienteInput) nomeClienteInput.value = '';
-        salvarContextoSessao();
+        if (servicoDisplay) servicoDisplay.value = '';
+
         abrirModal('modalCliente');
     });
 });
 
-// ===== Firebase =====
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-import {
-    getFirestore,
-    doc, getDoc, setDoc, serverTimestamp,
-    collection, query, where, getDocs
-} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-import {
-    getAuth, signInAnonymously, onAuthStateChanged
-} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-
-const firebaseConfig = {
-    apiKey: "AIzaSyDgaoVZK-5TF5xDFulLISridU9IXbmEYgg",
-    authDomain: "barbearia-agenda-fe2a7.firebaseapp.com",
-    projectId: "barbearia-agenda-fe2a7",
-    storageBucket: "barbearia-agenda-fe2a7.firebasestorage.app",
-    messagingSenderId: "876658896099",
-    appId: "1:876658896099:web:6a361416ed84fd636f29d6",
-    measurementId: "G-NJ4ETW1TNZ"
-};
-const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
-
-const auth = getAuth(app);
-signInAnonymously(auth).catch((e) => console.error("Anon auth error:", e));
-onAuthStateChanged(auth, (user) => console.log("Auth user:", user ? user.uid : null));
-
+// ===== Confirmar agendamento (COM CONTROLE DE HORÁRIOS) =====
 const confirmarBtn = document.getElementById('confirmarBtn');
-const toKey = (ymd, hhmm, profSlug) => `ag_${ymd}_${hhmm}_${profSlug}`;
-const normalizeHora = (h) => (h || "").padStart(5, "0");
-const diaProfKey = (ymd, prof) => `${ymd}#${prof}`;
-const profToSlug = (nome) =>
-    (nome || 'barbeiro')
-        .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
-        .toLowerCase().replace(/\s+/g, '_');
 
-async function getReservasByDate(ymd, profissional) {
-    const slug = profToSlug(profissional);
-    const q = query(
-        collection(db, 'agendamentos'),
-        where("diaProf", "==", diaProfKey(ymd, slug))
-    );
-    const snap = await getDocs(q);
-    const horasOcupadas = new Set();
-    snap.forEach(d => { if (d.data()?.hora) horasOcupadas.add(d.data().hora); });
-    return horasOcupadas;
-}
-
-async function carregarIndisponiveis() {
-    if (!dataInput?.value) return;
-    resetSelectVisual();
-    try {
-        const horas = await getReservasByDate(dataInput.value, ctx.profissional);
-        for (const opt of horaSelect.options) {
-            if (!opt.value) continue;
-            const ocupado = horas.has(opt.value);
-            opt.disabled = ocupado;
-            opt.classList.toggle('reservado', ocupado);
-            if (ocupado && horaSelect.value === opt.value) horaSelect.value = '';
-        }
-    } catch (e) {
-        console.error("Erro ao carregar horários:", e);
-        alert("Não foi possível consultar os horários agora. Tente novamente.");
-    }
-}
-dataInput?.addEventListener('change', carregarIndisponiveis);
-
-// ===== Modal de Serviço =====
-const servicoDisplay = document.getElementById('servicoDisplay');
-const servicoLista = document.getElementById('servicoLista');
-const servicoCancelar = document.getElementById('servicoCancelar');
-const servicoConfirmarWpp = document.getElementById('servicoConfirmarWpp');
-const svcSearch = document.getElementById('svcSearch');
-let svcFilterText = "";
-const norm = (s) => (s || "").normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
-
-function getFilteredServicos() {
-    const base = SERVICOS.slice(1);
-    if (!svcFilterText.trim()) return [SERVICOS[0], ...base];
-    const f = norm(svcFilterText);
-    return [SERVICOS[0], ...base.filter(s => norm(s.nome).includes(f))];
-}
-function renderListaServicos() {
-    const items = getFilteredServicos();
-    servicoLista.innerHTML = items.map((s) => {
-        const checked = agendamentoContexto.servico
-            ? (agendamentoContexto.servico.nome === s.nome ? 'checked' : '')
-            : (s.placeholder ? 'checked' : '');
-        const sub = s.placeholder
-            ? ''
-            : `<div class="svc-muted">${s.valor != null ? toBRL(s.valor) : 'Valor a consultar'}</div>`;
-        return `
-            <label class="svc-row" data-nome="${s.nome}">
-                <div class="svc-left">
-                    <div class="svc-name">${s.nome}</div>${sub}
-                </div>
-                <input class="svc-radio" type="radio" name="svc" value="${s.nome}" ${checked} />
-            </label>`;
-    }).join('');
-    servicoLista.querySelectorAll('.svc-row').forEach(row => {
-        row.addEventListener('click', () => {
-            const radio = row.querySelector('input[type="radio"]');
-            if (radio) radio.checked = true;
-        });
-    });
-}
-function abrirServico() {
-    svcFilterText = "";
-    if (svcSearch) svcSearch.value = "";
-    renderListaServicos();
-    abrirModal('servicoModal');
-}
-servicoDisplay?.addEventListener('click', abrirServico);
-servicoCancelar?.addEventListener('click', () => fecharModal('servicoModal'));
-svcSearch?.addEventListener('input', (e) => { svcFilterText = e.target.value || ""; renderListaServicos(); });
-
-servicoConfirmarWpp?.addEventListener('click', () => {
-    const sel = servicoLista.querySelector('input[name="svc"]:checked');
-    if (!sel) { alert('Selecione um serviço.'); return; }
-    const s = SERVICOS.find(x => x.nome === sel.value);
-    if (!s || s.placeholder) { alert('Selecione um serviço válido.'); return; }
-    agendamentoContexto.servico = { nome: s.nome, valor: s.valor };
-    servicoDisplay.value = s.valor != null ? `${s.nome} — ${toBRL(s.valor)}` : `${s.nome} — Valor a consultar`;
-    fecharModal('servicoModal');
-});
-
-// ===== Confirmar agendamento =====
-confirmarBtn?.addEventListener('click', async () => {
+confirmarBtn?.addEventListener('click', () => {
     const data = dataInput?.value;
     const hora = horaSelect?.value;
-    if (!data || !hora) { alert("Selecione data e horário."); return; }
-    if (!agendamentoContexto.servico) { alert("Selecione o serviço."); abrirServico(); return; }
-    if (!ctx.wa) { alert("Profissional não definido."); return; }
 
+    // Validações
+    if (!data || !hora) {
+        alert("Por favor, selecione data e horário.");
+        return;
+    }
+
+    if (!agendamentoContexto.servico) {
+        alert("Por favor, selecione o serviço primeiro.");
+        fecharModal('modal');
+        abrirModalServico();
+        return;
+    }
+
+    if (!agendamentoContexto.nomeCliente) {
+        alert("Nome do cliente não informado. Reinicie o agendamento.");
+        return;
+    }
+
+    if (!ctx.wa) {
+        alert("Profissional não definido.");
+        return;
+    }
+
+    // ⚠️ VERIFICAÇÃO DE CONFLITO - IMPORTANTE!
+    if (horarioEstaOcupado(data, hora, ctx.profissional)) {
+        alert("⚠️ Este horário acabou de ser reservado por outro cliente!\n\nPor favor, escolha outro horário.");
+        carregarHorariosDisponiveis(); // Atualiza a lista
+        return;
+    }
+
+    // Desabilita botão para evitar cliques duplos
     confirmarBtn.disabled = true;
     const originalText = confirmarBtn.textContent;
-    confirmarBtn.textContent = "Reservando...";
+    confirmarBtn.textContent = "Preparando...";
 
     try {
-        const hhmm = normalizeHora(hora);
-        const profSlug = profToSlug(ctx.profissional);
-        const ref = doc(db, 'agendamentos', toKey(data, hhmm, profSlug));
-
-        const checkSnap = await getDoc(ref);
-        if (checkSnap.exists()) {
-            await carregarIndisponiveis();
-            alert("Este horário já foi reservado. Por favor, escolha outro.");
-            return;
-        }
-
         const isRaClub = agendamentoContexto?.raclub?.status === 'membro';
 
-        await setDoc(ref, {
-            dataISO: data,
-            hora: hhmm,
-            profissional: profSlug,
-            diaProf: diaProfKey(data, profSlug),
-            barbeiroNome: ctx.profissional,
-            clienteNome: agendamentoContexto.nomeCliente || null,
-            cliente: agendamentoContexto.nomeCliente || null,
-            servico: agendamentoContexto.servico?.nome || null,
-            valor: agendamentoContexto.servico?.valor ?? 0,
-            servicoNome: agendamentoContexto.servico?.nome || null,
-            servicoValor: agendamentoContexto.servico?.valor ?? null,
-            produtos: agendamentoContexto.produtos || [],
-            totalProdutos: agendamentoContexto.totalProdutos || 0,
-            raclub: agendamentoContexto.raclub || { status: 'nao' },
-            raclubMembro: isRaClub,
-            clienteTipo: isRaClub ? 'raclub' : 'cliente',
-            tags: isRaClub ? ['raclub'] : [],
-            bloqueado: false,
-            pagamentoForma: "",
-            createdAt: serverTimestamp()
-        });
+        // ✅ SALVA O AGENDAMENTO NO LOCALSTORAGE
+        const salvou = salvarAgendamento(
+            data,
+            hora,
+            ctx.profissional,
+            agendamentoContexto.nomeCliente,
+            agendamentoContexto.servico.nome
+        );
 
-        try { await carregarIndisponiveis(); } catch (e) { console.warn("Falhou recarregar indisponíveis:", e); }
-
-        const dataBR = new Date(`${data}T00:00:00`).toLocaleDateString('pt-BR');
-        const servicoTxt = agendamentoContexto.servico
-            ? `Serviço: ${agendamentoContexto.servico.nome}${agendamentoContexto.servico.valor != null ? ' (' + toBRL(agendamentoContexto.servico.valor) + ')' : ''}\n`
-            : '';
-
-        let produtosTxt = "Sem produtos adicionais";
-        if (agendamentoContexto.produtos.length) {
-            const list = agendamentoContexto.produtos.map(p => `${p.nome} (${toBRL(p.preco)})`).join(', ');
-            produtosTxt = `Produtos: ${list} | Total: ${toBRL(agendamentoContexto.totalProdutos)}`;
+        if (!salvou) {
+            alert("⚠️ Não foi possível salvar o agendamento localmente. Continue pelo WhatsApp.");
         }
 
-        let raclubTxt = "RA Club: Não";
-        if (agendamentoContexto.raclub.status === 'membro') raclubTxt = "RA Club: Já sou membro ✅";
-        else if (agendamentoContexto.raclub.status === 'assinar_link') raclubTxt = "RA Club: Quero assinar (via link)";
+        // Formata a data em português
+        const dataBR = new Date(`${data}T00:00:00`).toLocaleDateString('pt-BR', {
+            weekday: 'long',
+            day: '2-digit',
+            month: 'long',
+            year: 'numeric'
+        });
 
-        const mensagem =
-            `Olá! Sou ${agendamentoContexto.nomeCliente}${isRaClub ? " (RA Club ✅)" : ""}.
-Agendamento Confirmado com ${ctx.profissional} para o dia ${dataBR} às ${hhmm}.
-${servicoTxt}${produtosTxt}
-${raclubTxt}`;
+        // Monta mensagem WhatsApp COMPLETA e PROFISSIONAL
+        let mensagem = `🔔 *NOVO AGENDAMENTO* ✅\n\n`;
+        mensagem += `━━━━━━━━━━━━━━━━━━━━\n`;
+        mensagem += `👤 *Cliente:* ${agendamentoContexto.nomeCliente}\n`;
+        if (isRaClub) mensagem += `⭐ *Status:* Membro RA Club VIP\n`;
+        mensagem += `━━━━━━━━━━━━━━━━━━━━\n\n`;
 
+        mensagem += `📅 *Data:* ${dataBR}\n`;
+        mensagem += `🕐 *Horário:* ${hora}\n`;
+        mensagem += `💈 *Profissional:* ${ctx.profissional}\n\n`;
+
+        mensagem += `✂️ *SERVIÇO SOLICITADO*\n`;
+        mensagem += `${agendamentoContexto.servico.nome}\n`;
+        if (agendamentoContexto.servico.valor != null) {
+            mensagem += `💰 Valor: ${toBRL(agendamentoContexto.servico.valor)}\n`;
+        } else {
+            mensagem += `💰 Valor: A consultar\n`;
+        }
+
+        if (agendamentoContexto.produtos.length > 0) {
+            mensagem += `\n🛍️ *PRODUTOS ADICIONAIS*\n`;
+            agendamentoContexto.produtos.forEach(p => {
+                mensagem += `   • ${p.nome}\n     ${toBRL(p.preco)}\n`;
+            });
+            mensagem += `\n💳 *Subtotal Produtos:* ${toBRL(agendamentoContexto.totalProdutos)}\n`;
+        }
+
+        // Total geral
+        const totalServico = agendamentoContexto.servico.valor || 0;
+        const totalGeral = totalServico + agendamentoContexto.totalProdutos;
+
+        if (totalGeral > 0) {
+            mensagem += `\n━━━━━━━━━━━━━━━━━━━━\n`;
+            mensagem += `💵 *VALOR TOTAL:* ${toBRL(totalGeral)}\n`;
+            mensagem += `━━━━━━━━━━━━━━━━━━━━\n`;
+        }
+
+        mensagem += `\n📍 *ENDEREÇO*\n`;
+        mensagem += `R. das Árvores - Fragoso\n`;
+        mensagem += `Magé - RJ, 25935-426\n`;
+
+        mensagem += `\n⚠️ *IMPORTANTE*\n`;
+        mensagem += `• Chegar 5 minutos antes\n`;
+        mensagem += `• Para remarcar, avisar com 24h\n`;
+        mensagem += `• Cancelamento sem taxa até 12h antes\n`;
+
+        mensagem += `\n_Agendamento via site Favela's Barber Shop_`;
+        mensagem += `\n_${new Date().toLocaleString('pt-BR')}_`;
+
+        // Abre WhatsApp
         const url = `https://wa.me/${ctx.wa}?text=${encodeURIComponent(mensagem)}`;
+
+        console.log("✅ Abrindo WhatsApp...");
+        console.log("📱 Mensagem:", mensagem);
+
         window.open(url, "_blank");
 
+        // Fecha modal de agendamento
         fecharModal('modal');
+
+        // Mostra mensagem de sucesso
+        alert(`✅ Horário reservado com sucesso!\n\n📅 ${dataBR}\n🕐 ${hora}\n\nVocê será redirecionado para o WhatsApp.`);
+
+        // Abre modal de avaliação
         const reviewBtn = document.getElementById('btnAvaliarGoogle');
         if (reviewBtn) reviewBtn.href = GOOGLE_REVIEW_URL;
         setTimeout(() => abrirModal('modalAvaliacao'), 400);
 
+        console.log("✅ Agendamento enviado com sucesso!");
+
     } catch (err) {
-        console.error("[RESERVA]", err);
-        alert("Não foi possível concluir a reserva. Tente novamente.");
+        console.error("[ERRO AO ENVIAR]", err);
+        alert("Não foi possível enviar o agendamento. Tente novamente.");
     } finally {
         confirmarBtn.disabled = false;
         confirmarBtn.textContent = originalText || "Agendar";
@@ -567,4 +747,71 @@ window.addEventListener('click', (e) => {
     });
 });
 
-tentarRetomarPosCheckout();
+console.log("✅ Sistema de agendamento carregado (Versão WhatsApp + Controle de Horários)");
+console.log("📊 Total de agendamentos salvos:", Object.keys(getAgendamentos()).length);
+
+// ===== PAINEL ADMINISTRATIVO (OPCIONAL - Para visualizar agendamentos) =====
+// Cole isso no console do navegador para ver todos os agendamentos:
+// localStorage.getItem('barbearia_agendamentos')
+
+// Para limpar todos os agendamentos (CUIDADO!):
+// localStorage.removeItem('barbearia_agendamentos')
+
+// Para ver agendamentos de forma organizada:
+window.verAgendamentos = function () {
+    const agendamentos = getAgendamentos();
+    if (Object.keys(agendamentos).length === 0) {
+        console.log("📭 Nenhum agendamento encontrado");
+        return;
+    }
+
+    console.log("📅 AGENDAMENTOS SALVOS:");
+    console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+
+    // Agrupa por data
+    const porData = {};
+    Object.values(agendamentos).forEach(ag => {
+        if (!porData[ag.data]) porData[ag.data] = [];
+        porData[ag.data].push(ag);
+    });
+
+    // Ordena por data
+    Object.keys(porData).sort().forEach(data => {
+        const dataBR = new Date(data + 'T00:00:00').toLocaleDateString('pt-BR', {
+            weekday: 'long',
+            day: '2-digit',
+            month: 'long',
+            year: 'numeric'
+        });
+        console.log(`\n📆 ${dataBR}`);
+
+        // Ordena por hora
+        porData[data].sort((a, b) => a.hora.localeCompare(b.hora)).forEach(ag => {
+            console.log(`   🕐 ${ag.hora} - ${ag.clienteNome} (${ag.profissional})`);
+            console.log(`      ✂️ ${ag.servico}`);
+        });
+    });
+
+    console.log("\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+    console.log(`📊 Total: ${Object.keys(agendamentos).length} agendamento(s)`);
+};
+
+// Para cancelar um agendamento específico:
+window.cancelarAgendamento = function (data, hora, profissional) {
+    const agendamentos = getAgendamentos();
+    const key = `${data}_${hora}_${profissional}`;
+
+    if (agendamentos[key]) {
+        delete agendamentos[key];
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(agendamentos));
+        console.log("✅ Agendamento cancelado:", key);
+        console.log("📊 Agendamentos restantes:", Object.keys(agendamentos).length);
+    } else {
+        console.log("❌ Agendamento não encontrado:", key);
+    }
+};
+
+console.log("\n💡 DICAS:");
+console.log("   • Digite verAgendamentos() no console para ver todos os agendamentos");
+console.log("   • Digite cancelarAgendamento('2026-02-25', '14:00', 'Thiago') para cancelar");
+console.log("   • Os agendamentos ficam salvos no navegador do cliente");
