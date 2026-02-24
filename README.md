@@ -20,7 +20,7 @@ Sistema de agendamento web moderno e responsivo desenvolvido especificamente par
 
 🖼️ Preview do Projeto
 
-<img src="https://github.com/AntonioLuiz-dev/PROJETO-PADARIA-DONA-EUGENIA/blob/main/assets/mockup.png?raw=true" width="500px"/>
+<img src="https://github.com/AntonioLuiz-dev/PROJETO-BARBEARIA/blob/main/assets/mockup.png?raw=true" width="500px"/>
 
 ### 🎯 Problema Resolvido
 
