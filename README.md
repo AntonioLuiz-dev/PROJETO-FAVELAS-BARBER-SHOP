@@ -18,6 +18,10 @@
 
 Sistema de agendamento web moderno e responsivo desenvolvido especificamente para a **Favela's Barber Shop**. Permite que clientes agendem serviços de forma intuitiva, com controle de horários, seleção de produtos e integração direta com WhatsApp para confirmação.
 
+🖼️ Preview do Projeto
+
+<img src="https://github.com/AntonioLuiz-dev/PROJETO-PADARIA-DONA-EUGENIA/blob/main/assets/mockup.png?raw=true" width="500px"/>
+
 ### 🎯 Problema Resolvido
 
 - ❌ Agendamentos por telefone (linha ocupada)
