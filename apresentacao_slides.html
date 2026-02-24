@@ -1,0 +1,1054 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema de Agendamento para Barbearias</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #000;
+            overflow: hidden;
+        }
+
+        .presentation {
+            width: 100vw;
+            height: 100vh;
+            position: relative;
+        }
+
+        .slide {
+            width: 100%;
+            height: 100%;
+            position: absolute;
+            top: 0;
+            left: 0;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 60px;
+            opacity: 0;
+            transform: translateX(100%);
+            transition: all 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+        }
+
+        .slide.active {
+            opacity: 1;
+            transform: translateX(0);
+        }
+
+        .slide.prev {
+            transform: translateX(-100%);
+        }
+
+        /* Slide 1 - Capa */
+        #slide1 {
+            background: linear-gradient(135deg, #C5A049 0%, #8B7230 100%);
+        }
+
+        #slide1 h1 {
+            font-size: 4rem;
+            color: #fff;
+            text-align: center;
+            margin-bottom: 20px;
+            text-shadow: 3px 3px 6px rgba(0,0,0,0.3);
+        }
+
+        #slide1 .subtitle {
+            font-size: 1.8rem;
+            color: #040f1a;
+            text-align: center;
+            font-weight: 600;
+            margin-bottom: 40px;
+        }
+
+        #slide1 .icon {
+            font-size: 6rem;
+            margin-bottom: 30px;
+        }
+
+        /* Slide 2 - Problema */
+        #slide2 {
+            background: linear-gradient(135deg, #dc2626 0%, #991b1b 100%);
+        }
+
+        #slide2 h2 {
+            font-size: 3rem;
+            color: #fff;
+            margin-bottom: 50px;
+        }
+
+        .problem-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 30px;
+            max-width: 1200px;
+        }
+
+        .problem-item {
+            background: rgba(255,255,255,0.1);
+            padding: 30px;
+            border-radius: 15px;
+            backdrop-filter: blur(10px);
+        }
+
+        .problem-item .emoji {
+            font-size: 3rem;
+            margin-bottom: 15px;
+        }
+
+        .problem-item h3 {
+            color: #fff;
+            font-size: 1.5rem;
+            margin-bottom: 10px;
+        }
+
+        .problem-item p {
+            color: #fecaca;
+            font-size: 1.1rem;
+            line-height: 1.6;
+        }
+
+        /* Slide 3 - Solução */
+        #slide3 {
+            background: linear-gradient(135deg, #059669 0%, #047857 100%);
+        }
+
+        #slide3 h2 {
+            font-size: 3rem;
+            color: #fff;
+            margin-bottom: 50px;
+        }
+
+        .solution-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 25px;
+            max-width: 1400px;
+        }
+
+        .solution-item {
+            background: rgba(255,255,255,0.15);
+            padding: 25px;
+            border-radius: 15px;
+            text-align: center;
+            backdrop-filter: blur(10px);
+        }
+
+        .solution-item .emoji {
+            font-size: 3rem;
+            margin-bottom: 15px;
+        }
+
+        .solution-item h3 {
+            color: #fff;
+            font-size: 1.3rem;
+            margin-bottom: 10px;
+        }
+
+        .solution-item p {
+            color: #d1fae5;
+            font-size: 1rem;
+            line-height: 1.5;
+        }
+
+        /* Slide 4 - Como Funciona */
+        #slide4 {
+            background: linear-gradient(135deg, #1e40af 0%, #1e3a8a 100%);
+        }
+
+        #slide4 h2 {
+            font-size: 3rem;
+            color: #fff;
+            margin-bottom: 50px;
+        }
+
+        .steps {
+            display: flex;
+            gap: 20px;
+            max-width: 1400px;
+            align-items: center;
+        }
+
+        .step {
+            background: rgba(255,255,255,0.15);
+            padding: 30px;
+            border-radius: 15px;
+            text-align: center;
+            flex: 1;
+            backdrop-filter: blur(10px);
+        }
+
+        .step-number {
+            width: 60px;
+            height: 60px;
+            background: #fff;
+            color: #1e40af;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2rem;
+            font-weight: bold;
+            margin: 0 auto 20px;
+        }
+
+        .step h3 {
+            color: #fff;
+            font-size: 1.3rem;
+            margin-bottom: 10px;
+        }
+
+        .step p {
+            color: #bfdbfe;
+            font-size: 1rem;
+        }
+
+        .arrow {
+            font-size: 3rem;
+            color: #fff;
+        }
+
+        /* Slide 5 - Diferenciais */
+        #slide5 {
+            background: linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%);
+        }
+
+        #slide5 h2 {
+            font-size: 3rem;
+            color: #fff;
+            margin-bottom: 50px;
+        }
+
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 30px;
+            max-width: 1200px;
+        }
+
+        .feature-card {
+            background: rgba(255,255,255,0.15);
+            padding: 35px;
+            border-radius: 15px;
+            backdrop-filter: blur(10px);
+        }
+
+        .feature-card .icon {
+            font-size: 3rem;
+            margin-bottom: 15px;
+        }
+
+        .feature-card h3 {
+            color: #fff;
+            font-size: 1.5rem;
+            margin-bottom: 15px;
+        }
+
+        .feature-card ul {
+            list-style: none;
+            color: #e9d5ff;
+        }
+
+        .feature-card ul li {
+            padding: 8px 0;
+            font-size: 1.1rem;
+        }
+
+        .feature-card ul li:before {
+            content: "✓ ";
+            color: #4ade80;
+            font-weight: bold;
+            margin-right: 10px;
+        }
+
+        /* Slide 6 - Responsivo */
+        #slide6 {
+            background: linear-gradient(135deg, #0891b2 0%, #0e7490 100%);
+        }
+
+        #slide6 h2 {
+            font-size: 3rem;
+            color: #fff;
+            margin-bottom: 30px;
+        }
+
+        .devices-showcase {
+            display: flex;
+            gap: 40px;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .device-mockup {
+            text-align: center;
+        }
+
+        .device-frame {
+            background: rgba(255,255,255,0.15);
+            padding: 40px 30px;
+            border-radius: 20px;
+            backdrop-filter: blur(10px);
+            display: inline-block;
+        }
+
+        .device-icon {
+            font-size: 5rem;
+            margin-bottom: 15px;
+        }
+
+        .device-label {
+            color: #fff;
+            font-size: 1.3rem;
+            font-weight: 600;
+        }
+
+        /* Slide 7 - WhatsApp */
+        #slide7 {
+            background: linear-gradient(135deg, #15803d 0%, #166534 100%);
+        }
+
+        #slide7 h2 {
+            font-size: 3rem;
+            color: #fff;
+            margin-bottom: 30px;
+        }
+
+        .whatsapp-demo {
+            background: rgba(255,255,255,0.15);
+            padding: 40px;
+            border-radius: 20px;
+            max-width: 800px;
+            backdrop-filter: blur(10px);
+        }
+
+        .whatsapp-message {
+            background: #dcf8c6;
+            color: #000;
+            padding: 25px;
+            border-radius: 15px;
+            font-family: 'Courier New', monospace;
+            font-size: 1rem;
+            line-height: 1.8;
+            white-space: pre-line;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        }
+
+        /* Slide 8 - Investimento */
+        #slide8 {
+            background: linear-gradient(135deg, #C5A049 0%, #8B7230 100%);
+        }
+
+        #slide8 h2 {
+            font-size: 3rem;
+            color: #fff;
+            margin-bottom: 50px;
+        }
+
+        .pricing-cards {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 30px;
+            max-width: 1400px;
+        }
+
+        .pricing-card {
+            background: rgba(255,255,255,0.95);
+            padding: 40px 30px;
+            border-radius: 20px;
+            text-align: center;
+            position: relative;
+        }
+
+        .pricing-card.featured {
+            transform: scale(1.05);
+            box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+        }
+
+        .pricing-card .badge {
+            background: #059669;
+            color: #fff;
+            padding: 8px 20px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            font-weight: bold;
+            position: absolute;
+            top: -15px;
+            left: 50%;
+            transform: translateX(-50%);
+        }
+
+        .pricing-card h3 {
+            color: #040f1a;
+            font-size: 1.8rem;
+            margin-bottom: 20px;
+        }
+
+        .pricing-card .price {
+            font-size: 2.5rem;
+            color: #C5A049;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+
+        .pricing-card .period {
+            color: #666;
+            font-size: 1rem;
+            margin-bottom: 30px;
+        }
+
+        .pricing-card ul {
+            list-style: none;
+            text-align: left;
+            margin-bottom: 30px;
+        }
+
+        .pricing-card ul li {
+            padding: 10px 0;
+            color: #333;
+            font-size: 1rem;
+        }
+
+        .pricing-card ul li:before {
+            content: "✓";
+            color: #059669;
+            font-weight: bold;
+            margin-right: 10px;
+        }
+
+        /* Slide 9 - Processo */
+        #slide9 {
+            background: linear-gradient(135deg, #ea580c 0%, #c2410c 100%);
+        }
+
+        #slide9 h2 {
+            font-size: 3rem;
+            color: #fff;
+            margin-bottom: 50px;
+        }
+
+        .timeline {
+            display: flex;
+            gap: 20px;
+            max-width: 1400px;
+        }
+
+        .timeline-item {
+            background: rgba(255,255,255,0.15);
+            padding: 30px;
+            border-radius: 15px;
+            flex: 1;
+            text-align: center;
+            backdrop-filter: blur(10px);
+        }
+
+        .timeline-item .day {
+            background: #fff;
+            color: #ea580c;
+            width: 70px;
+            height: 70px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            font-weight: bold;
+            margin: 0 auto 20px;
+        }
+
+        .timeline-item h3 {
+            color: #fff;
+            font-size: 1.3rem;
+            margin-bottom: 10px;
+        }
+
+        .timeline-item p {
+            color: #fed7aa;
+            font-size: 1rem;
+        }
+
+        /* Slide 10 - Garantias */
+        #slide10 {
+            background: linear-gradient(135deg, #0891b2 0%, #0e7490 100%);
+        }
+
+        #slide10 h2 {
+            font-size: 3rem;
+            color: #fff;
+            margin-bottom: 50px;
+        }
+
+        .guarantees {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 35px;
+            max-width: 1200px;
+        }
+
+        .guarantee-box {
+            background: rgba(255,255,255,0.15);
+            padding: 35px;
+            border-radius: 15px;
+            backdrop-filter: blur(10px);
+        }
+
+        .guarantee-box .icon {
+            font-size: 3.5rem;
+            margin-bottom: 20px;
+        }
+
+        .guarantee-box h3 {
+            color: #fff;
+            font-size: 1.6rem;
+            margin-bottom: 15px;
+        }
+
+        .guarantee-box p {
+            color: #cffafe;
+            font-size: 1.1rem;
+            line-height: 1.6;
+        }
+
+        /* Slide 11 - CTA */
+        #slide11 {
+            background: linear-gradient(135deg, #C5A049 0%, #8B7230 100%);
+        }
+
+        #slide11 h2 {
+            font-size: 3.5rem;
+            color: #fff;
+            margin-bottom: 30px;
+            text-align: center;
+        }
+
+        #slide11 .subtitle {
+            font-size: 1.5rem;
+            color: #040f1a;
+            margin-bottom: 50px;
+            text-align: center;
+        }
+
+        .contact-info {
+            background: rgba(255,255,255,0.95);
+            padding: 50px;
+            border-radius: 20px;
+            max-width: 700px;
+            text-align: center;
+        }
+
+        .contact-info h3 {
+            color: #040f1a;
+            font-size: 2rem;
+            margin-bottom: 30px;
+        }
+
+        .contact-item {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 15px;
+            padding: 20px;
+            margin: 15px 0;
+            background: #f5f5f5;
+            border-radius: 10px;
+            font-size: 1.3rem;
+            color: #333;
+        }
+
+        .contact-item .icon {
+            font-size: 2rem;
+            color: #C5A049;
+        }
+
+        .cta-button {
+            background: #059669;
+            color: #fff;
+            padding: 20px 50px;
+            border-radius: 50px;
+            font-size: 1.5rem;
+            font-weight: bold;
+            border: none;
+            cursor: pointer;
+            margin-top: 30px;
+            transition: transform 0.3s;
+        }
+
+        .cta-button:hover {
+            transform: scale(1.05);
+        }
+
+        /* Controles */
+        .controls {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            display: flex;
+            gap: 15px;
+            z-index: 1000;
+        }
+
+        .controls button {
+            background: rgba(255,255,255,0.2);
+            border: 2px solid #fff;
+            color: #fff;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            font-size: 1.5rem;
+            cursor: pointer;
+            backdrop-filter: blur(10px);
+            transition: all 0.3s;
+        }
+
+        .controls button:hover {
+            background: rgba(255,255,255,0.4);
+            transform: scale(1.1);
+        }
+
+        /* Contador de slides */
+        .slide-counter {
+            position: fixed;
+            bottom: 30px;
+            left: 30px;
+            color: #fff;
+            font-size: 1.2rem;
+            background: rgba(0,0,0,0.3);
+            padding: 10px 20px;
+            border-radius: 30px;
+            backdrop-filter: blur(10px);
+            z-index: 1000;
+        }
+
+        @media (max-width: 1200px) {
+            .slide {
+                padding: 40px 30px;
+            }
+            
+            #slide1 h1 {
+                font-size: 3rem;
+            }
+            
+            .problem-grid, .features-grid, .pricing-cards {
+                grid-template-columns: 1fr;
+            }
+            
+            .steps, .timeline {
+                flex-direction: column;
+            }
+            
+            .arrow {
+                transform: rotate(90deg);
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="presentation">
+        <!-- Slide 1: Capa -->
+        <div class="slide active" id="slide1">
+            <div class="icon">💈</div>
+            <h1>Sistema de Agendamento Online</h1>
+            <div class="subtitle">Para Barbearias Profissionais</div>
+            <p style="color: #040f1a; font-size: 1.2rem; margin-top: 20px;">Transforme seu atendimento com tecnologia</p>
+        </div>
+
+        <!-- Slide 2: Problema -->
+        <div class="slide" id="slide2">
+            <h2>📉 Você Enfrenta Estes Problemas?</h2>
+            <div class="problem-grid">
+                <div class="problem-item">
+                    <div class="emoji">📞</div>
+                    <h3>Telefone Ocupado</h3>
+                    <p>Clientes tentam ligar mas você está atendendo. Perda de vendas garantida.</p>
+                </div>
+                <div class="problem-item">
+                    <div class="emoji">⏰</div>
+                    <h3>Conflitos de Horário</h3>
+                    <p>Dois clientes agendados no mesmo horário. Desorganização e insatisfação.</p>
+                </div>
+                <div class="problem-item">
+                    <div class="emoji">📝</div>
+                    <h3>Anotações Confusas</h3>
+                    <p>Papel, caderno, agenda... informações espalhadas e difíceis de gerenciar.</p>
+                </div>
+                <div class="problem-item">
+                    <div class="emoji">😤</div>
+                    <h3>Clientes Impacientes</h3>
+                    <p>Ligam fora do horário, querem agendar quando você não pode atender.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 3: Solução -->
+        <div class="slide" id="slide3">
+            <h2>✅ A Solução Completa</h2>
+            <div class="solution-grid">
+                <div class="solution-item">
+                    <div class="emoji">🌐</div>
+                    <h3>Site Profissional</h3>
+                    <p>Design moderno e responsivo. Sua barbearia na internet.</p>
+                </div>
+                <div class="solution-item">
+                    <div class="emoji">📅</div>
+                    <h3>Agendamento 24/7</h3>
+                    <p>Clientes agendam a qualquer hora, de qualquer lugar.</p>
+                </div>
+                <div class="solution-item">
+                    <div class="emoji">💬</div>
+                    <h3>WhatsApp Automático</h3>
+                    <p>Todas as informações organizadas direto no seu WhatsApp.</p>
+                </div>
+                <div class="solution-item">
+                    <div class="emoji">✂️</div>
+                    <h3>50+ Serviços</h3>
+                    <p>Catálogo completo com preços transparentes.</p>
+                </div>
+                <div class="solution-item">
+                    <div class="emoji">📱</div>
+                    <h3>100% Responsivo</h3>
+                    <p>Funciona perfeitamente em celular, tablet e desktop.</p>
+                </div>
+                <div class="solution-item">
+                    <div class="emoji">⚡</div>
+                    <h3>Controle de Horários</h3>
+                    <p>Sistema impede agendamentos duplicados automaticamente.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 4: Como Funciona -->
+        <div class="slide" id="slide4">
+            <h2>🔄 Como Funciona (4 Passos)</h2>
+            <div class="steps">
+                <div class="step">
+                    <div class="step-number">1</div>
+                    <h3>Nome</h3>
+                    <p>Cliente informa seu nome</p>
+                </div>
+                <div class="arrow">→</div>
+                <div class="step">
+                    <div class="step-number">2</div>
+                    <h3>Serviço</h3>
+                    <p>Escolhe o serviço desejado</p>
+                </div>
+                <div class="arrow">→</div>
+                <div class="step">
+                    <div class="step-number">3</div>
+                    <h3>Produtos</h3>
+                    <p>Adiciona produtos (opcional)</p>
+                </div>
+                <div class="arrow">→</div>
+                <div class="step">
+                    <div class="step-number">4</div>
+                    <h3>Horário</h3>
+                    <p>Seleciona data e hora</p>
+                </div>
+            </div>
+            <p style="color: #fff; font-size: 1.3rem; margin-top: 50px; text-align: center;">
+                ✅ Tudo vai direto pro seu WhatsApp, organizado e profissional!
+            </p>
+        </div>
+
+        <!-- Slide 5: Diferenciais -->
+        <div class="slide" id="slide5">
+            <h2>🌟 Diferenciais do Sistema</h2>
+            <div class="features-grid">
+                <div class="feature-card">
+                    <div class="icon">🎨</div>
+                    <h3>Interface Profissional</h3>
+                    <ul>
+                        <li>Design moderno e clean</li>
+                        <li>Cores personalizáveis</li>
+                        <li>Animações suaves</li>
+                        <li>Navegação intuitiva</li>
+                    </ul>
+                </div>
+                <div class="feature-card">
+                    <div class="icon">🛍️</div>
+                    <h3>Venda de Produtos</h3>
+                    <ul>
+                        <li>Catálogo de produtos</li>
+                        <li>Cálculo automático</li>
+                        <li>Upsell inteligente</li>
+                        <li>Aumento de ticket médio</li>
+                    </ul>
+                </div>
+                <div class="feature-card">
+                    <div class="icon">🔍</div>
+                    <h3>Busca Inteligente</h3>
+                    <ul>
+                        <li>Busca em tempo real</li>
+                        <li>Filtros por nome</li>
+                        <li>50+ serviços</li>
+                        <li>Preços transparentes</li>
+                    </ul>
+                </div>
+                <div class="feature-card">
+                    <div class="icon">📊</div>
+                    <h3>Controle Total</h3>
+                    <ul>
+                        <li>Painel de visualização</li>
+                        <li>Horários ocupados bloqueados</li>
+                        <li>Confirmação manual</li>
+                        <li>Flexibilidade total</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 6: Responsivo -->
+        <div class="slide" id="slide6">
+            <h2>📱 Funciona em Todos os Dispositivos</h2>
+            <p style="color: #fff; font-size: 1.3rem; margin-bottom: 50px;">100% Responsivo e Otimizado</p>
+            <div class="devices-showcase">
+                <div class="device-mockup">
+                    <div class="device-frame">
+                        <div class="device-icon">💻</div>
+                        <div class="device-label">Desktop</div>
+                    </div>
+                </div>
+                <div class="device-mockup">
+                    <div class="device-frame">
+                        <div class="device-icon">📱</div>
+                        <div class="device-label">Smartphone</div>
+                    </div>
+                </div>
+                <div class="device-mockup">
+                    <div class="device-frame">
+                        <div class="device-icon">📲</div>
+                        <div class="device-label">Tablet</div>
+                    </div>
+                </div>
+            </div>
+            <p style="color: #cffafe; font-size: 1.2rem; margin-top: 50px; text-align: center; max-width: 800px;">
+                Seus clientes podem agendar de qualquer dispositivo, a qualquer hora, de qualquer lugar!
+            </p>
+        </div>
+
+        <!-- Slide 7: WhatsApp -->
+        <div class="slide" id="slide7">
+            <h2>💬 Mensagem Profissional no WhatsApp</h2>
+            <div class="whatsapp-demo">
+                <div class="whatsapp-message">🔔 SOLICITAÇÃO DE AGENDAMENTO 📋
+
+━━━━━━━━━━━━━━━━━━━━
+👤 Cliente: João Silva
+━━━━━━━━━━━━━━━━━━━━
+
+📅 Data: Quarta-feira, 01/março/2026
+🕐 Horário: 14:00
+💈 Profissional: Thiago
+
+✂️ SERVIÇO
+Corte + Barba
+💰 R$ 75,00
+
+🛍️ PRODUTOS
+• Pomada Líquida - R$ 39,99
+
+━━━━━━━━━━━━━━━━━━━━
+💵 VALOR TOTAL: R$ 114,99
+━━━━━━━━━━━━━━━━━━━━
+
+⏳ AGUARDANDO CONFIRMAÇÃO</div>
+            </div>
+            <p style="color: #d1fae5; font-size: 1.2rem; margin-top: 30px; text-align: center;">
+                Todas as informações organizadas. Você só confirma ou sugere outro horário!
+            </p>
+        </div>
+
+        <!-- Slide 8: Investimento -->
+        <div class="slide" id="slide8">
+            <h2>💰 Planos e Investimento</h2>
+            <div class="pricing-cards">
+                <div class="pricing-card">
+                    <h3>Básico</h3>
+                    <div class="price">R$ 1.200</div>
+                    <div class="period">Pagamento único</div>
+                    <ul>
+                        <li>Sistema completo</li>
+                        <li>Design responsivo</li>
+                        <li>50+ serviços</li>
+                        <li>15 dias de suporte</li>
+                    </ul>
+                </div>
+                <div class="pricing-card featured">
+                    <div class="badge">RECOMENDADO</div>
+                    <h3>Profissional</h3>
+                    <div class="price">R$ 1.200</div>
+                    <div class="period">+ R$ 150/mês</div>
+                    <ul>
+                        <li>Tudo do Básico</li>
+                        <li>Manutenção mensal</li>
+                        <li>Atualizações ilimitadas</li>
+                        <li>Suporte prioritário</li>
+                        <li>Backups mensais</li>
+                    </ul>
+                </div>
+                <div class="pricing-card">
+                    <h3>Empresarial</h3>
+                    <div class="price">R$ 1.200</div>
+                    <div class="period">+ R$ 350/trim</div>
+                    <ul>
+                        <li>Tudo do Básico</li>
+                        <li>Manutenção trimestral</li>
+                        <li>Ideal poucas mudanças</li>
+                        <li>Suporte via WhatsApp</li>
+                    </ul>
+                </div>
+            </div>
+            <p style="color: #040f1a; font-size: 1.3rem; margin-top: 40px; text-align: center; font-weight: 600;">
+                💳 Pagamento: 50% início + 50% entrega | Pix, Transferência ou Cartão
+            </p>
+        </div>
+
+        <!-- Slide 9: Processo -->
+        <div class="slide" id="slide9">
+            <h2>🚀 Processo de Entrega (7-10 Dias)</h2>
+            <div class="timeline">
+                <div class="timeline-item">
+                    <div class="day">Dia 1</div>
+                    <h3>Contratação</h3>
+                    <p>Assinatura do contrato e pagamento de 50%</p>
+                </div>
+                <div class="timeline-item">
+                    <div class="day">Dia 2</div>
+                    <h3>Materiais</h3>
+                    <p>Envio de logo, fotos e informações</p>
+                </div>
+                <div class="timeline-item">
+                    <div class="day">Dia 3-7</div>
+                    <h3>Desenvolvimento</h3>
+                    <p>Criação do site e sistema completo</p>
+                </div>
+                <div class="timeline-item">
+                    <div class="day">Dia 8</div>
+                    <h3>Revisão</h3>
+                    <p>Você testa e solicita ajustes</p>
+                </div>
+                <div class="timeline-item">
+                    <div class="day">Dia 10</div>
+                    <h3>Entrega</h3>
+                    <p>Pagamento final + treinamento</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 10: Garantias -->
+        <div class="slide" id="slide10">
+            <h2>🛡️ Garantias e Segurança</h2>
+            <div class="guarantees">
+                <div class="guarantee-box">
+                    <div class="icon">✅</div>
+                    <h3>15 Dias de Suporte</h3>
+                    <p>Após a entrega, você tem 15 dias de suporte gratuito para correções e dúvidas.</p>
+                </div>
+                <div class="guarantee-box">
+                    <div class="icon">💾</div>
+                    <h3>Código-Fonte Seu</h3>
+                    <p>Após pagamento total, o código é 100% seu. Pode hospedar onde quiser.</p>
+                </div>
+                <div class="guarantee-box">
+                    <div class="icon">🔒</div>
+                    <h3>Dados Seguros</h3>
+                    <p>Sistema local, sem banco de dados externo. Privacidade total dos seus clientes.</p>
+                </div>
+                <div class="guarantee-box">
+                    <div class="icon">📄</div>
+                    <h3>Contrato Legal</h3>
+                    <p>Contrato completo com todas as cláusulas e garantias formalizadas.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 11: CTA -->
+        <div class="slide" id="slide11">
+            <h2>🎯 Transforme Sua Barbearia Hoje!</h2>
+            <div class="subtitle">Profissionalize seu atendimento e aumente suas vendas</div>
+            <div class="contact-info">
+                <h3>Entre em Contato Agora</h3>
+                <div class="contact-item">
+                    <span class="icon">📱</span>
+                    <span>(XX) XXXXX-XXXX</span>
+                </div>
+                <div class="contact-item">
+                    <span class="icon">📧</span>
+                    <span>seu@email.com</span>
+                </div>
+                <div class="contact-item">
+                    <span class="icon">🌐</span>
+                    <span>www.seusite.com</span>
+                </div>
+                <button class="cta-button">Solicitar Orçamento</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Controles -->
+    <div class="controls">
+        <button id="prevBtn" title="Anterior">←</button>
+        <button id="nextBtn" title="Próximo">→</button>
+    </div>
+
+    <!-- Contador -->
+    <div class="slide-counter">
+        <span id="currentSlide">1</span> / <span id="totalSlides">11</span>
+    </div>
+
+    <script>
+        let currentSlide = 1;
+        const totalSlides = 11;
+
+        function showSlide(n) {
+            const slides = document.querySelectorAll('.slide');
+            
+            if (n > totalSlides) currentSlide = 1;
+            if (n < 1) currentSlide = totalSlides;
+            else currentSlide = n;
+
+            slides.forEach((slide, index) => {
+                slide.classList.remove('active', 'prev');
+                if (index + 1 === currentSlide) {
+                    slide.classList.add('active');
+                } else if (index + 1 < currentSlide) {
+                    slide.classList.add('prev');
+                }
+            });
+
+            document.getElementById('currentSlide').textContent = currentSlide;
+        }
+
+        function nextSlide() {
+            showSlide(currentSlide + 1);
+        }
+
+        function prevSlide() {
+            showSlide(currentSlide - 1);
+        }
+
+        document.getElementById('nextBtn').addEventListener('click', nextSlide);
+        document.getElementById('prevBtn').addEventListener('click', prevSlide);
+
+        // Navegação por teclado
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowRight' || e.key === ' ') {
+                e.preventDefault();
+                nextSlide();
+            } else if (e.key === 'ArrowLeft') {
+                e.preventDefault();
+                prevSlide();
+            }
+        });
+
+        // Inicializa
+        document.getElementById('totalSlides').textContent = totalSlides;
+    </script>
+</body>
+</html>

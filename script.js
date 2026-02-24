@@ -83,7 +83,6 @@ let agendamentoContexto = {
     nomeCliente: '',
     produtos: [],
     totalProdutos: 0,
-    raclub: { status: 'nao' },
     servico: null
 };
 
@@ -162,10 +161,10 @@ const toBRL = (n) => (Number(n) || 0).toLocaleString('pt-BR', { style: 'currency
 // ===== Helpers de modal =====
 function abrirModal(id) {
     const el = document.getElementById(id);
-    if (el) {
-        el.style.display = 'flex';
+    if (el) { 
+        el.style.display = 'flex'; 
         el.removeAttribute('aria-hidden');
-
+        
         setTimeout(() => {
             const focusable = el.querySelector('input, button, select, textarea, [tabindex]:not([tabindex="-1"])');
             if (focusable) focusable.focus();
@@ -175,9 +174,9 @@ function abrirModal(id) {
 
 function fecharModal(id) {
     const el = document.getElementById(id);
-    if (el) {
-        el.style.display = 'none';
-        el.setAttribute('aria-hidden', 'true');
+    if (el) { 
+        el.style.display = 'none'; 
+        el.setAttribute('aria-hidden', 'true'); 
     }
 }
 window.fecharModal = fecharModal;
@@ -188,10 +187,10 @@ window.fecharModal = fecharModal;
 const nomeClienteInput = document.getElementById('nomeCliente');
 document.getElementById('btnClienteContinuar')?.addEventListener('click', () => {
     const nome = (nomeClienteInput.value || '').trim();
-    if (!nome) {
-        alert('Por favor, digite seu nome para continuar.');
+    if (!nome) { 
+        alert('Por favor, digite seu nome para continuar.'); 
         nomeClienteInput.focus();
-        return;
+        return; 
     }
     agendamentoContexto.nomeCliente = nome;
     fecharModal('modalCliente');
@@ -216,16 +215,16 @@ function getFilteredServicos() {
 
 function renderListaServicos() {
     const items = getFilteredServicos();
-
+    
     if (items.length === 0) {
         servicoLista.innerHTML = '<div style="padding: 20px; text-align: center; color: #999;">Nenhum serviço encontrado</div>';
         return;
     }
-
+    
     servicoLista.innerHTML = items.map((s) => {
         const checked = agendamentoContexto.servico?.nome === s.nome ? 'checked' : '';
         const sub = `<div class="svc-muted">${s.valor != null ? toBRL(s.valor) : 'Valor a consultar'}</div>`;
-
+        
         return `
             <label class="svc-row" data-nome="${s.nome}">
                 <div class="svc-left">
@@ -234,7 +233,7 @@ function renderListaServicos() {
                 <input class="svc-radio" type="radio" name="svc" value="${s.nome}" ${checked} />
             </label>`;
     }).join('');
-
+    
     servicoLista.querySelectorAll('.svc-row').forEach(row => {
         row.addEventListener('click', () => {
             const radio = row.querySelector('input[type="radio"]');
@@ -261,32 +260,32 @@ servicoCancelar?.addEventListener('click', () => {
     fecharModal('servicoModal');
 });
 
-svcSearch?.addEventListener('input', (e) => {
-    svcFilterText = e.target.value || "";
-    renderListaServicos();
+svcSearch?.addEventListener('input', (e) => { 
+    svcFilterText = e.target.value || ""; 
+    renderListaServicos(); 
 });
 
 servicoConfirmarWpp?.addEventListener('click', () => {
     const sel = servicoLista.querySelector('input[name="svc"]:checked');
-    if (!sel) {
-        alert('Por favor, selecione um serviço.');
-        return;
+    if (!sel) { 
+        alert('Por favor, selecione um serviço.'); 
+        return; 
     }
-
+    
     const s = SERVICOS.find(x => x.nome === sel.value);
-    if (!s || s.placeholder) {
-        alert('Por favor, selecione um serviço válido.');
-        return;
+    if (!s || s.placeholder) { 
+        alert('Por favor, selecione um serviço válido.'); 
+        return; 
     }
-
+    
     agendamentoContexto.servico = { nome: s.nome, valor: s.valor };
-
+    
     if (servicoDisplay) {
-        servicoDisplay.value = s.valor != null
-            ? `${s.nome} — ${toBRL(s.valor)}`
+        servicoDisplay.value = s.valor != null 
+            ? `${s.nome} — ${toBRL(s.valor)}` 
             : `${s.nome} — Valor a consultar`;
     }
-
+    
     fecharModal('servicoModal');
     abrirModalProdutos();
 });
@@ -303,10 +302,10 @@ function renderProdutos() {
         const card = document.createElement('div');
         card.className = 'prod-card';
         card.dataset.index = i;
-
+        
         const jaSelecionado = agendamentoContexto.produtos.some(pr => pr.nome === p.nome);
         if (jaSelecionado) card.classList.add('active');
-
+        
         card.innerHTML = `
             <div class="p-name">${p.nome}</div>
             <div class="p-price">${toBRL(p.preco)}</div>
@@ -320,7 +319,7 @@ function renderProdutos() {
 function toggleProduto(index, cardEl) {
     const item = PRODUTOS[index];
     const exists = agendamentoContexto.produtos.find(pr => pr.nome === item.nome);
-
+    
     if (exists) {
         agendamentoContexto.produtos = agendamentoContexto.produtos.filter(pr => pr.nome !== item.nome);
         cardEl.classList.remove('active');
@@ -330,7 +329,7 @@ function toggleProduto(index, cardEl) {
         cardEl.classList.add('active');
         cardEl.querySelector('.muted').textContent = 'Toque para remover';
     }
-
+    
     agendamentoContexto.totalProdutos = agendamentoContexto.produtos.reduce((s, it) => s + (it.preco || 0), 0);
     prodTotalSpan.textContent = toBRL(agendamentoContexto.totalProdutos);
 }
@@ -343,45 +342,19 @@ function abrirModalProdutos() {
     abrirModal('modalProdutos');
 }
 
-btnProdutosPular?.addEventListener('click', () => {
+btnProdutosPular?.addEventListener('click', () => { 
     agendamentoContexto.produtos = [];
     agendamentoContexto.totalProdutos = 0;
-    fecharModal('modalProdutos');
-    abrirModalRAClub();
+    fecharModal('modalProdutos'); 
+    abrirModalAgendamento(); // Vai direto para agendamento
 });
 
-btnProdutosContinuar?.addEventListener('click', () => {
-    fecharModal('modalProdutos');
-    abrirModalRAClub();
+btnProdutosContinuar?.addEventListener('click', () => { 
+    fecharModal('modalProdutos'); 
+    abrirModalAgendamento(); // Vai direto para agendamento
 });
 
-// 4️⃣ Modal RA Club
-const btnRAJaMembro = document.getElementById('btnRAJaMembro');
-const btnRANao = document.getElementById('btnRANao');
-const btnRAAssinar = document.getElementById('btnRAAssinar');
-
-function abrirModalRAClub() {
-    abrirModal('modalRAClub');
-}
-
-btnRAJaMembro?.addEventListener('click', () => {
-    agendamentoContexto.raclub = { status: 'membro' };
-    fecharModal('modalRAClub');
-    abrirModalAgendamento();
-});
-
-btnRANao?.addEventListener('click', () => {
-    agendamentoContexto.raclub = { status: 'nao' };
-    fecharModal('modalRAClub');
-    abrirModalAgendamento();
-});
-
-if (btnRAAssinar) {
-    btnRAAssinar.addEventListener('click', () => {
-        agendamentoContexto.raclub = { status: 'assinar_link' };
-        // Link abre automaticamente pelo href do botão
-    });
-}
+// 4️⃣ Modal RA Club - REMOVIDO (não é mais usado)
 
 // 5️⃣ Modal Agendamento (data/hora) + Controle de Horários
 const dataInput = document.getElementById('data');
@@ -395,7 +368,7 @@ function salvarAgendamento(data, hora, profissional, clienteNome, servico) {
     try {
         const agendamentos = getAgendamentos();
         const key = `${data}_${hora}_${profissional}`;
-
+        
         agendamentos[key] = {
             data,
             hora,
@@ -404,7 +377,7 @@ function salvarAgendamento(data, hora, profissional, clienteNome, servico) {
             servico,
             timestamp: new Date().toISOString()
         };
-
+        
         localStorage.setItem(STORAGE_KEY, JSON.stringify(agendamentos));
         console.log("✅ Agendamento salvo localmente:", key);
         return true;
@@ -436,14 +409,14 @@ function horarioEstaOcupado(data, hora, profissional) {
 function getHorariosOcupados(data, profissional) {
     const agendamentos = getAgendamentos();
     const ocupados = [];
-
+    
     Object.keys(agendamentos).forEach(key => {
         const ag = agendamentos[key];
         if (ag.data === data && ag.profissional === profissional) {
             ocupados.push(ag.hora);
         }
     });
-
+    
     return ocupados;
 }
 
@@ -453,18 +426,18 @@ function limparAgendamentosAntigos() {
         const agendamentos = getAgendamentos();
         const hoje = new Date();
         let removidos = 0;
-
+        
         Object.keys(agendamentos).forEach(key => {
             const ag = agendamentos[key];
             const dataAg = new Date(ag.data + 'T00:00:00');
             const diffDias = Math.floor((hoje - dataAg) / (1000 * 60 * 60 * 24));
-
+            
             if (diffDias > 30) {
                 delete agendamentos[key];
                 removidos++;
             }
         });
-
+        
         if (removidos > 0) {
             localStorage.setItem(STORAGE_KEY, JSON.stringify(agendamentos));
             console.log(`🧹 ${removidos} agendamento(s) antigo(s) removido(s)`);
@@ -500,9 +473,9 @@ function carregarHorariosDisponiveis() {
         console.log("⚠️ Data ou profissional não definidos");
         return;
     }
-
+    
     console.log("🔍 Verificando horários disponíveis para:", dataInput.value, ctx.profissional);
-
+    
     // Reseta todos os horários
     for (const opt of horaSelect.options) {
         if (!opt.value) continue;
@@ -510,29 +483,29 @@ function carregarHorariosDisponiveis() {
         opt.classList.remove('reservado');
         opt.style.color = '';
     }
-
+    
     // Marca horários ocupados
     const ocupados = getHorariosOcupados(dataInput.value, ctx.profissional);
     console.log("⏰ Horários ocupados:", ocupados);
-
+    
     let totalOcupados = 0;
     for (const opt of horaSelect.options) {
         if (!opt.value) continue;
-
+        
         if (ocupados.includes(opt.value)) {
             opt.disabled = true;
             opt.classList.add('reservado');
             opt.style.color = '#999';
             opt.textContent = `${opt.value} - Ocupado`;
             totalOcupados++;
-
+            
             // Se o horário selecionado ficou ocupado, limpa a seleção
             if (horaSelect.value === opt.value) {
                 horaSelect.value = '';
             }
         }
     }
-
+    
     if (totalOcupados > 0) {
         console.log(`✅ ${totalOcupados} horário(s) marcado(s) como ocupado(s)`);
     } else {
@@ -546,12 +519,12 @@ dataInput?.addEventListener('change', carregarHorariosDisponiveis);
 function getDataMinima() {
     const hoje = new Date();
     const horaAtual = hoje.getHours();
-
+    
     // Se já passou das 20h, define data mínima para amanhã
     if (horaAtual >= 20) {
         hoje.setDate(hoje.getDate() + 1);
     }
-
+    
     const y = hoje.getFullYear();
     const m = String(hoje.getMonth() + 1).padStart(2, "0");
     const d = String(hoje.getDate()).padStart(2, "0");
@@ -563,14 +536,43 @@ function abrirModalAgendamento() {
     dataInput.value = "";
     fillHorasForProf();
     horaSelect.value = "";
-
+    
     const display = document.getElementById('servicoDisplay');
     if (display && agendamentoContexto.servico) {
         display.value = agendamentoContexto.servico.valor != null
             ? `${agendamentoContexto.servico.nome} — ${toBRL(agendamentoContexto.servico.valor)}`
             : `${agendamentoContexto.servico.nome} — Valor a consultar`;
     }
-
+    
+    // Adiciona aviso sobre confirmação manual
+    const modalTitle = document.querySelector('#modal h2');
+    if (modalTitle && !document.getElementById('avisoConfirmacao')) {
+        const aviso = document.createElement('div');
+        aviso.id = 'avisoConfirmacao';
+        aviso.style.cssText = `
+            background: #fff3cd;
+            border: 1px solid #ffc107;
+            border-radius: 8px;
+            padding: 12px;
+            margin: 10px 0;
+            display: flex;
+            align-items: start;
+            gap: 10px;
+            font-size: 0.9rem;
+            color: #856404;
+            line-height: 1.5;
+        `;
+        aviso.innerHTML = `
+            <i class='bx bx-info-circle' style='font-size: 1.3rem; margin-top: 2px;'></i>
+            <div>
+                <strong>⏳ Aguarde confirmação</strong><br>
+                Após enviar, aguarde a confirmação do horário pelo WhatsApp. 
+                O barbeiro verificará a disponibilidade e confirmará seu agendamento.
+            </div>
+        `;
+        modalTitle.after(aviso);
+    }
+    
     abrirModal('modal');
 }
 
@@ -579,19 +581,29 @@ document.querySelectorAll('.openModalBtn').forEach(btn => {
     btn.addEventListener('click', () => {
         ctx.profissional = btn.dataset.pro || 'Thiago';
         ctx.wa = btn.dataset.wa || '5521986020031';
-
+        
         agendamentoContexto = {
             nomeCliente: '',
             produtos: [],
             totalProdutos: 0,
-            raclub: { status: 'nao' },
             servico: null
         };
-
+        
         if (nomeClienteInput) nomeClienteInput.value = '';
         if (servicoDisplay) servicoDisplay.value = '';
-
-        abrirModal('modalCliente');
+        
+        const confirmar = confirm(
+            "📋 PROCESSO DE AGENDAMENTO\n\n" +
+            "✅ Preencha seus dados e preferências\n" +
+            "✅ Enviaremos sua solicitação via WhatsApp\n" +
+            "⏳ Aguarde a CONFIRMAÇÃO do barbeiro\n\n" +
+            "O barbeiro verificará a disponibilidade e confirmará seu horário.\n\n" +
+            "Deseja continuar?"
+        );
+        
+        if (confirmar) {
+            abrirModal('modalCliente');
+        }
     });
 });
 
@@ -601,28 +613,28 @@ const confirmarBtn = document.getElementById('confirmarBtn');
 confirmarBtn?.addEventListener('click', () => {
     const data = dataInput?.value;
     const hora = horaSelect?.value;
-
+    
     // Validações
-    if (!data || !hora) {
-        alert("Por favor, selecione data e horário.");
-        return;
+    if (!data || !hora) { 
+        alert("Por favor, selecione data e horário."); 
+        return; 
     }
-
-    if (!agendamentoContexto.servico) {
-        alert("Por favor, selecione o serviço primeiro.");
+    
+    if (!agendamentoContexto.servico) { 
+        alert("Por favor, selecione o serviço primeiro."); 
         fecharModal('modal');
         abrirModalServico();
-        return;
+        return; 
     }
-
+    
     if (!agendamentoContexto.nomeCliente) {
         alert("Nome do cliente não informado. Reinicie o agendamento.");
         return;
     }
-
-    if (!ctx.wa) {
-        alert("Profissional não definido.");
-        return;
+    
+    if (!ctx.wa) { 
+        alert("Profissional não definido."); 
+        return; 
     }
 
     // ⚠️ VERIFICAÇÃO DE CONFLITO - IMPORTANTE!
@@ -638,23 +650,8 @@ confirmarBtn?.addEventListener('click', () => {
     confirmarBtn.textContent = "Preparando...";
 
     try {
-        const isRaClub = agendamentoContexto?.raclub?.status === 'membro';
-
-        // ✅ SALVA O AGENDAMENTO NO LOCALSTORAGE
-        const salvou = salvarAgendamento(
-            data,
-            hora,
-            ctx.profissional,
-            agendamentoContexto.nomeCliente,
-            agendamentoContexto.servico.nome
-        );
-
-        if (!salvou) {
-            alert("⚠️ Não foi possível salvar o agendamento localmente. Continue pelo WhatsApp.");
-        }
-
         // Formata a data em português
-        const dataBR = new Date(`${data}T00:00:00`).toLocaleDateString('pt-BR', {
+        const dataBR = new Date(`${data}T00:00:00`).toLocaleDateString('pt-BR', { 
             weekday: 'long',
             day: '2-digit',
             month: 'long',
@@ -662,16 +659,15 @@ confirmarBtn?.addEventListener('click', () => {
         });
 
         // Monta mensagem WhatsApp COMPLETA e PROFISSIONAL
-        let mensagem = `🔔 *NOVO AGENDAMENTO* ✅\n\n`;
+        let mensagem = `🔔 *SOLICITAÇÃO DE AGENDAMENTO* 📋\n\n`;
         mensagem += `━━━━━━━━━━━━━━━━━━━━\n`;
         mensagem += `👤 *Cliente:* ${agendamentoContexto.nomeCliente}\n`;
-        if (isRaClub) mensagem += `⭐ *Status:* Membro RA Club VIP\n`;
         mensagem += `━━━━━━━━━━━━━━━━━━━━\n\n`;
-
-        mensagem += `📅 *Data:* ${dataBR}\n`;
-        mensagem += `🕐 *Horário:* ${hora}\n`;
+        
+        mensagem += `📅 *Data Solicitada:* ${dataBR}\n`;
+        mensagem += `🕐 *Horário Solicitado:* ${hora}\n`;
         mensagem += `💈 *Profissional:* ${ctx.profissional}\n\n`;
-
+        
         mensagem += `✂️ *SERVIÇO SOLICITADO*\n`;
         mensagem += `${agendamentoContexto.servico.nome}\n`;
         if (agendamentoContexto.servico.valor != null) {
@@ -679,7 +675,7 @@ confirmarBtn?.addEventListener('click', () => {
         } else {
             mensagem += `💰 Valor: A consultar\n`;
         }
-
+        
         if (agendamentoContexto.produtos.length > 0) {
             mensagem += `\n🛍️ *PRODUTOS ADICIONAIS*\n`;
             agendamentoContexto.produtos.forEach(p => {
@@ -687,43 +683,41 @@ confirmarBtn?.addEventListener('click', () => {
             });
             mensagem += `\n💳 *Subtotal Produtos:* ${toBRL(agendamentoContexto.totalProdutos)}\n`;
         }
-
+        
         // Total geral
         const totalServico = agendamentoContexto.servico.valor || 0;
         const totalGeral = totalServico + agendamentoContexto.totalProdutos;
-
+        
         if (totalGeral > 0) {
             mensagem += `\n━━━━━━━━━━━━━━━━━━━━\n`;
             mensagem += `💵 *VALOR TOTAL:* ${toBRL(totalGeral)}\n`;
             mensagem += `━━━━━━━━━━━━━━━━━━━━\n`;
         }
-
+        
+        mensagem += `\n⏳ *AGUARDANDO CONFIRMAÇÃO*\n`;
+        mensagem += `Por favor, confirme a disponibilidade deste horário.\n`;
+        
         mensagem += `\n📍 *ENDEREÇO*\n`;
         mensagem += `R. das Árvores - Fragoso\n`;
         mensagem += `Magé - RJ, 25935-426\n`;
-
-        mensagem += `\n⚠️ *IMPORTANTE*\n`;
-        mensagem += `• Chegar 5 minutos antes\n`;
-        mensagem += `• Para remarcar, avisar com 24h\n`;
-        mensagem += `• Cancelamento sem taxa até 12h antes\n`;
-
-        mensagem += `\n_Agendamento via site Favela's Barber Shop_`;
+        
+        mensagem += `\n_Solicitação via site Favela's Barber Shop_`;
         mensagem += `\n_${new Date().toLocaleString('pt-BR')}_`;
 
         // Abre WhatsApp
         const url = `https://wa.me/${ctx.wa}?text=${encodeURIComponent(mensagem)}`;
-
+        
         console.log("✅ Abrindo WhatsApp...");
         console.log("📱 Mensagem:", mensagem);
-
+        
         window.open(url, "_blank");
 
         // Fecha modal de agendamento
         fecharModal('modal');
-
-        // Mostra mensagem de sucesso
-        alert(`✅ Horário reservado com sucesso!\n\n📅 ${dataBR}\n🕐 ${hora}\n\nVocê será redirecionado para o WhatsApp.`);
-
+        
+        // Mostra mensagem de sucesso COM AVISO
+        alert(`✅ Solicitação enviada com sucesso!\n\n📱 Você será redirecionado para o WhatsApp.\n\n⏳ IMPORTANTE: Aguarde a confirmação do barbeiro sobre a disponibilidade do horário.\n\n📅 Horário solicitado:\n${dataBR} às ${hora}`);
+        
         // Abre modal de avaliação
         const reviewBtn = document.getElementById('btnAvaliarGoogle');
         if (reviewBtn) reviewBtn.href = GOOGLE_REVIEW_URL;
@@ -758,49 +752,49 @@ console.log("📊 Total de agendamentos salvos:", Object.keys(getAgendamentos())
 // localStorage.removeItem('barbearia_agendamentos')
 
 // Para ver agendamentos de forma organizada:
-window.verAgendamentos = function () {
+window.verAgendamentos = function() {
     const agendamentos = getAgendamentos();
     if (Object.keys(agendamentos).length === 0) {
         console.log("📭 Nenhum agendamento encontrado");
         return;
     }
-
+    
     console.log("📅 AGENDAMENTOS SALVOS:");
     console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
-
+    
     // Agrupa por data
     const porData = {};
     Object.values(agendamentos).forEach(ag => {
         if (!porData[ag.data]) porData[ag.data] = [];
         porData[ag.data].push(ag);
     });
-
+    
     // Ordena por data
     Object.keys(porData).sort().forEach(data => {
-        const dataBR = new Date(data + 'T00:00:00').toLocaleDateString('pt-BR', {
+        const dataBR = new Date(data + 'T00:00:00').toLocaleDateString('pt-BR', { 
             weekday: 'long',
             day: '2-digit',
             month: 'long',
             year: 'numeric'
         });
         console.log(`\n📆 ${dataBR}`);
-
+        
         // Ordena por hora
         porData[data].sort((a, b) => a.hora.localeCompare(b.hora)).forEach(ag => {
             console.log(`   🕐 ${ag.hora} - ${ag.clienteNome} (${ag.profissional})`);
             console.log(`      ✂️ ${ag.servico}`);
         });
     });
-
+    
     console.log("\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
     console.log(`📊 Total: ${Object.keys(agendamentos).length} agendamento(s)`);
 };
 
 // Para cancelar um agendamento específico:
-window.cancelarAgendamento = function (data, hora, profissional) {
+window.cancelarAgendamento = function(data, hora, profissional) {
     const agendamentos = getAgendamentos();
     const key = `${data}_${hora}_${profissional}`;
-
+    
     if (agendamentos[key]) {
         delete agendamentos[key];
         localStorage.setItem(STORAGE_KEY, JSON.stringify(agendamentos));
